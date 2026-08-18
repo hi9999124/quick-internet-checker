@@ -8,8 +8,19 @@ import '../models/device_snapshot.dart';
 class DeviceInfoService {
   Future<DeviceSnapshot> load() async {
     final plugin = DeviceInfoPlugin();
-    final packageInfo = await PackageInfo.fromPlatform();
     final locale = WidgetsBinding.instance.platformDispatcher.locale.toString();
+
+    String appName = 'QIC';
+    String appVersion = 'Unknown';
+    String buildNumber = 'Unknown';
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      appName = packageInfo.appName;
+      appVersion = packageInfo.version;
+      buildNumber = packageInfo.buildNumber;
+    } catch (_) {
+      // Package metadata is best-effort; keep the fallbacks.
+    }
 
     String platform = 'Unknown';
     String osVersion = 'Unknown';
@@ -55,9 +66,9 @@ class DeviceInfoService {
       platform: platform,
       osVersion: osVersion,
       deviceModel: model,
-      appName: packageInfo.appName,
-      appVersion: packageInfo.version,
-      buildNumber: packageInfo.buildNumber,
+      appName: appName,
+      appVersion: appVersion,
+      buildNumber: buildNumber,
       locale: locale,
     );
   }

@@ -195,35 +195,54 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  ShaderMask(
-                    shaderCallback: (rect) => AppColors.primaryGradient.createShader(rect),
-                    child: const Text(
-                      'QIC',
-                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Quick Internet Checker',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
-                    ),
-                  ),
-                ],
-              ),
-              _checkingConnectivity
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final statusPill = _checkingConnectivity
                   ? const StatusPill(label: 'Checking…', tone: PillTone.warning)
                   : StatusPill(
                       label: _online == true ? 'Online' : 'Offline',
                       tone: _online == true ? PillTone.online : PillTone.offline,
+                    );
+
+              final wordmark = ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ShaderMask(
+                      shaderCallback: (rect) => AppColors.primaryGradient.createShader(rect),
+                      child: const Text(
+                        'QIC',
+                        style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white),
+                      ),
                     ),
-            ],
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Quick Internet Checker',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+
+              // Wordmark and status share a line when they fit; at large font
+              // scales the pill drops to its own line instead of squeezing the
+              // title down to a couple of characters.
+              return Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 12,
+                runSpacing: 8,
+                children: [wordmark, statusPill],
+              );
+            },
           ),
           const SizedBox(height: 16),
           _NetworkSnapshotCard(
@@ -306,13 +325,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 2.6,
+          _MetricGrid(
             children: [
               MetricTile(
                 icon: Icons.arrow_downward_rounded,
@@ -366,6 +379,36 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+/// Lays the metric tiles out two-up, dropping to one column when the system
+/// font scale makes two too cramped. Tiles size to their own content instead
+/// of a fixed aspect ratio, so nothing is clipped as text grows.
+class _MetricGrid extends StatelessWidget {
+  final List<Widget> children;
+
+  const _MetricGrid({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = 12.0;
+        final scale = MediaQuery.textScalerOf(context).scale(16) / 16;
+        final twoColumns = constraints.maxWidth >= 340 && scale <= 1.15;
+        final itemWidth =
+            twoColumns ? (constraints.maxWidth - spacing) / 2 : constraints.maxWidth;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final child in children) SizedBox(width: itemWidth, child: child),
+          ],
+        );
+      },
+    );
+  }
+}
+
 /// At-a-glance IP / DNS / latency readout, separate from the on-demand
 /// download+upload speed test above.
 class _NetworkSnapshotCard extends StatelessWidget {
@@ -407,8 +450,15 @@ class _NetworkSnapshotCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Network snapshot', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: mutedColor)),
+              Flexible(
+                child: Text(
+                  'Network snapshot',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: mutedColor),
+                ),
+              ),
+              const SizedBox(width: 8),
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   if (usingCache && cachedAt != null) ...[
                     CacheBadge(since: cachedAt!),
@@ -434,35 +484,52 @@ class _NetworkSnapshotCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 20,
-            runSpacing: 10,
-            children: [
-              _SnapshotFact(
-                icon: Icons.public_rounded,
-                accent: AppColors.cyan,
-                label: 'IP address',
-                value: ipFailed ? 'Unavailable' : (ip ?? '—'),
-              ),
-              _SnapshotFact(
-                icon: Icons.dns_rounded,
-                accent: AppColors.violet,
-                label: 'DNS lookup',
-                value: !dnsSupported ? 'N/A on web' : (dnsMs == null ? '—' : '$dnsMs ms'),
-              ),
-              _SnapshotFact(
-                icon: Icons.podcasts_rounded,
-                accent: AppColors.magenta,
-                label: 'Latency',
-                value: latencyMs == null ? '—' : '$latencyMs ms',
-              ),
-              _SnapshotFact(
-                icon: Icons.location_on_rounded,
-                accent: AppColors.online,
-                label: 'Location',
-                value: location ?? '—',
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const spacing = 16.0;
+              // Two columns only while a fact still gets a usable width;
+              // at large system font scales fall back to full-width rows so
+              // values like "Unavailable" can't collide with the next column.
+              final scale = MediaQuery.textScalerOf(context).scale(13) / 13;
+              final twoColumns = constraints.maxWidth >= 300 && scale <= 1.15;
+              final itemWidth =
+                  twoColumns ? (constraints.maxWidth - spacing) / 2 : constraints.maxWidth;
+
+              final facts = <Widget>[
+                _SnapshotFact(
+                  icon: Icons.public_rounded,
+                  accent: AppColors.cyan,
+                  label: 'IP address',
+                  value: ipFailed ? 'Unavailable' : (ip ?? '—'),
+                ),
+                _SnapshotFact(
+                  icon: Icons.dns_rounded,
+                  accent: AppColors.violet,
+                  label: 'DNS lookup',
+                  value: !dnsSupported ? 'N/A on web' : (dnsMs == null ? '—' : '$dnsMs ms'),
+                ),
+                _SnapshotFact(
+                  icon: Icons.podcasts_rounded,
+                  accent: AppColors.magenta,
+                  label: 'Latency',
+                  value: latencyMs == null ? '—' : '$latencyMs ms',
+                ),
+                _SnapshotFact(
+                  icon: Icons.location_on_rounded,
+                  accent: AppColors.online,
+                  label: 'Location',
+                  value: location ?? '—',
+                ),
+              ];
+
+              return Wrap(
+                spacing: spacing,
+                runSpacing: 12,
+                children: [
+                  for (final fact in facts) SizedBox(width: itemWidth, child: fact),
+                ],
+              );
+            },
           ),
           if (isp != null) ...[
             const SizedBox(height: 10),
@@ -484,28 +551,34 @@ class _SnapshotFact extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 150,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 16, color: accent),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))),
-                Text(
-                  value,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                  overflow: TextOverflow.ellipsis,
+    // Width comes from the parent so the card can switch between one and two
+    // columns; the value wraps over two lines rather than being clipped.
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: accent),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
-              ],
-            ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

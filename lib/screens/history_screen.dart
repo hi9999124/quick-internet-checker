@@ -90,8 +90,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('History', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+              const Flexible(
+                child: Text('History', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+              ),
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
                     onPressed: () => Navigator.of(context).push(
@@ -138,12 +141,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55)),
                             ),
                             const SizedBox(height: 6),
-                            Row(
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 4,
                               children: [
-                                Icon(Icons.arrow_downward_rounded, size: 16, color: AppColors.cyan),
-                                Text(' ${entry.downloadMbps.toStringAsFixed(1)} Mbps   '),
-                                Icon(Icons.arrow_upward_rounded, size: 16, color: AppColors.violet),
-                                Text(' ${entry.uploadMbps.toStringAsFixed(1)} Mbps'),
+                                _SpeedChip(
+                                  icon: Icons.arrow_downward_rounded,
+                                  color: AppColors.cyan,
+                                  text: '${entry.downloadMbps.toStringAsFixed(1)} Mbps',
+                                ),
+                                _SpeedChip(
+                                  icon: Icons.arrow_upward_rounded,
+                                  color: AppColors.violet,
+                                  text: '${entry.uploadMbps.toStringAsFixed(1)} Mbps',
+                                ),
                               ],
                             ),
                           ],
@@ -162,6 +173,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
               )),
         ],
       ),
+    );
+  }
+}
+
+/// Icon + value pair used in a history row, kept as one unbreakable unit so
+/// the arrow never separates from its number when the line wraps.
+class _SpeedChip extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String text;
+
+  const _SpeedChip({required this.icon, required this.color, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 4),
+        Text(text),
+      ],
     );
   }
 }

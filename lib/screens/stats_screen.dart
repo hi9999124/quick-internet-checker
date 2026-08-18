@@ -6,6 +6,7 @@ import '../models/speed_sample.dart';
 import '../services/history_store.dart';
 import '../theme/app_colors.dart';
 import '../widgets/info_section.dart';
+import '../widgets/page_header.dart';
 import '../widgets/sparkline.dart';
 
 class StatsScreen extends StatefulWidget {
@@ -44,15 +45,7 @@ class _StatsScreenState extends State<StatsScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
         children: [
-          Row(
-            children: [
-              IconButton(
-                onPressed: () => Navigator.of(context).maybePop(),
-                icon: const Icon(Icons.arrow_back_rounded),
-              ),
-              const Text('Statistics', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-            ],
-          ),
+          const PageHeader(title: 'Statistics'),
           const SizedBox(height: 12),
           if (_loading)
             const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))

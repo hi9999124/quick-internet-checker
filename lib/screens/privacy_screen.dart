@@ -5,6 +5,7 @@ import '../models/speed_sample.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/info_section.dart';
+import '../widgets/page_header.dart';
 
 class PrivacyScreen extends StatelessWidget {
   final PrivacySignals signals;
@@ -19,15 +20,7 @@ class PrivacyScreen extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
         children: [
-          Row(
-            children: [
-              IconButton(
-                onPressed: () => Navigator.of(context).maybePop(),
-                icon: const Icon(Icons.arrow_back_rounded),
-              ),
-              const Text('Privacy', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-            ],
-          ),
+          const PageHeader(title: 'Privacy'),
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),

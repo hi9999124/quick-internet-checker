@@ -11,6 +11,7 @@ import '../services/snapshot_cache.dart';
 import '../theme/app_colors.dart';
 import '../widgets/cache_badge.dart';
 import '../widgets/info_section.dart';
+import '../widgets/page_header.dart';
 import '../widgets/status_pill.dart';
 import 'device_info_screen.dart';
 import 'privacy_screen.dart';
@@ -135,18 +136,11 @@ class _FullReportScreenState extends State<FullReportScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
           children: [
-            Row(
-              children: [
-                IconButton(
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  icon: const Icon(Icons.arrow_back_rounded),
-                ),
-                const Expanded(
-                  child: Text('Full network report', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                ),
-                if (_loading)
-                  const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-              ],
+            PageHeader(
+              title: 'Full network report',
+              trailing: _loading
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  : null,
             ),
             const SizedBox(height: 12),
 

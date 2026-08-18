@@ -7,6 +7,7 @@ import '../services/snapshot_cache.dart';
 import '../theme/app_colors.dart';
 import '../widgets/cache_badge.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/info_section.dart';
 import '../widgets/status_pill.dart';
 import 'full_report_screen.dart';
 import 'privacy_screen.dart';
@@ -128,7 +129,9 @@ class _NetworkInfoScreenState extends State<NetworkInfoScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Network Info', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+                const Flexible(
+                  child: Text('Network Info', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+                ),
                 IconButton(
                   onPressed: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const FullReportScreen()),
@@ -146,7 +149,10 @@ class _NetworkInfoScreenState extends State<NetworkInfoScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Public IP & ISP', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                      const Flexible(
+                        child: Text('Public IP & ISP', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                      ),
+                      const SizedBox(width: 8),
                       if (_usingCache && _cachedAt != null)
                         CacheBadge(since: _cachedAt!)
                       else if (_loading)
@@ -155,14 +161,14 @@ class _NetworkInfoScreenState extends State<NetworkInfoScreen> {
                   ),
                   const SizedBox(height: 12),
                   if (_ipInfo != null) ...[
-                    _InfoRow(label: 'IP address', value: _ipInfo!.ip),
-                    _InfoRow(label: 'ISP', value: _ipInfo!.isp ?? 'Unknown'),
-                    _InfoRow(label: 'ASN', value: _ipInfo!.asn ?? 'Unknown'),
-                    _InfoRow(label: 'City', value: _ipInfo!.city ?? 'Unknown'),
-                    _InfoRow(label: 'Region', value: _ipInfo!.region ?? 'Unknown'),
-                    _InfoRow(label: 'Country', value: _ipInfo!.country ?? 'Unknown'),
-                    _InfoRow(label: 'Postal code', value: _ipInfo!.postal ?? 'Unknown'),
-                    _InfoRow(label: 'Timezone', value: _ipInfo!.timezone ?? 'Unknown'),
+                    InfoRow(label: 'IP address', value: _ipInfo!.ip),
+                    InfoRow(label: 'ISP', value: _ipInfo!.isp ?? 'Unknown'),
+                    InfoRow(label: 'ASN', value: _ipInfo!.asn ?? 'Unknown'),
+                    InfoRow(label: 'City', value: _ipInfo!.city ?? 'Unknown'),
+                    InfoRow(label: 'Region', value: _ipInfo!.region ?? 'Unknown'),
+                    InfoRow(label: 'Country', value: _ipInfo!.country ?? 'Unknown'),
+                    InfoRow(label: 'Postal code', value: _ipInfo!.postal ?? 'Unknown'),
+                    InfoRow(label: 'Timezone', value: _ipInfo!.timezone ?? 'Unknown'),
                   ] else if (_ipError != null)
                     Text(_ipError!, style: TextStyle(color: AppColors.offline))
                   else
@@ -185,7 +191,8 @@ class _NetworkInfoScreenState extends State<NetworkInfoScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(p.label),
+                              Flexible(child: Text(p.label)),
+                              const SizedBox(width: 8),
                               StatusPill(
                                 label: p.isReachable ? '${p.ms} ms' : 'unreachable',
                                 tone: !p.isReachable
@@ -208,7 +215,7 @@ class _NetworkInfoScreenState extends State<NetworkInfoScreen> {
                   if (!_dnsSupported)
                     const Text('DNS timing isn\'t available on this platform (browser sandbox).')
                   else
-                    _InfoRow(label: 'example.com lookup', value: _dnsMs == null ? 'Testing…' : '$_dnsMs ms'),
+                    InfoRow(label: 'example.com lookup', value: _dnsMs == null ? 'Testing…' : '$_dnsMs ms'),
                 ],
               ),
             ),
@@ -242,28 +249,3 @@ class _NetworkInfoScreenState extends State<NetworkInfoScreen> {
   }
 }
 
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-  const _InfoRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

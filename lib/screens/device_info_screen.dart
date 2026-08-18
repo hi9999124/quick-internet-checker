@@ -4,6 +4,7 @@ import '../models/device_snapshot.dart';
 import '../services/device_info_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/info_section.dart';
+import '../widgets/page_header.dart';
 
 class DeviceInfoScreen extends StatefulWidget {
   /// Optional preloaded snapshot (e.g. from FullReportScreen, which already
@@ -40,15 +41,7 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
         children: [
-          Row(
-            children: [
-              IconButton(
-                onPressed: () => Navigator.of(context).maybePop(),
-                icon: const Icon(Icons.arrow_back_rounded),
-              ),
-              const Text('Device info', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-            ],
-          ),
+          const PageHeader(title: 'Device info'),
           const SizedBox(height: 12),
           if (d == null)
             const Text('Loading device info…')

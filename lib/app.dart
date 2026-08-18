@@ -41,7 +41,18 @@ class _QicAppState extends State<QicApp> {
       themeMode: _themeMode,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      builder: (context, child) => GradientBackground(child: child ?? const SizedBox.shrink()),
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        return MediaQuery(
+          // Respect the system font-size setting, but cap it: past ~1.5x the
+          // dense metric/report layouts stop being readable no matter how they
+          // wrap. Every screen is built to lay out cleanly up to this cap.
+          data: media.copyWith(
+            textScaler: media.textScaler.clamp(minScaleFactor: 1.0, maxScaleFactor: 1.5),
+          ),
+          child: GradientBackground(child: child ?? const SizedBox.shrink()),
+        );
+      },
       home: RootShell(
         themeMode: _themeMode,
         onThemeModeChanged: (mode) => setState(() => _themeMode = mode),

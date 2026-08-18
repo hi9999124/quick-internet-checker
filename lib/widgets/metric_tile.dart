@@ -49,6 +49,7 @@ class MetricTile extends StatelessWidget {
                 Text(
                   value,
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],

@@ -102,6 +102,7 @@ class _GlassNavBar extends StatelessWidget {
                 final (icon, label) = _items[i];
                 return Expanded(
                   child: InkWell(
+                    key: ValueKey('nav-$label'),
                     onTap: () => onChanged(i),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
