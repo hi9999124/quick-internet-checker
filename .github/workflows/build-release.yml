@@ -1,0 +1,54 @@
+name: Build & release APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.5'
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter analyze
+
+      - run: flutter test
+
+      - run: flutter build apk --release
+
+      - run: flutter build web --release
+
+      - name: Rename build outputs
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/QIC-${{ github.run_number }}.apk"
+          cd build/web && zip -r "../../dist/QIC-web-${{ github.run_number }}.zip" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qic-apk
+          path: dist/*.apk
+
+      - name: Publish GitHub release with APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: QIC build ${{ github.run_number }}
+          body: |
+            Automated build from commit ${{ github.sha }}.
+
+            Download `QIC-${{ github.run_number }}.apk` below and install it on
+            an Android device (enable "install from unknown sources" if needed).
+          files: dist/*
+          generate_release_notes: false
