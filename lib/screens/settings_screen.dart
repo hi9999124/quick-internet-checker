@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../services/settings_store.dart';
 import '../widgets/glass_card.dart';
+import 'device_info_screen.dart';
+import 'full_report_screen.dart';
+import 'stats_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final ThemeMode themeMode;
@@ -69,6 +72,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
           ),
+          const SizedBox(height: 16),
+          GlassCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _NavListTile(
+                  icon: Icons.fact_check_rounded,
+                  label: 'Full network report',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const FullReportScreen()),
+                  ),
+                ),
+                const Divider(height: 1),
+                _NavListTile(
+                  icon: Icons.bar_chart_rounded,
+                  label: 'Statistics',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const StatsScreen()),
+                  ),
+                ),
+                const Divider(height: 1),
+                _NavListTile(
+                  icon: Icons.smartphone_rounded,
+                  label: 'Device info',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const DeviceInfoScreen()),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -77,6 +111,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _setTheme(ThemeMode mode) {
     widget.onThemeModeChanged(mode);
     _store.saveThemeMode(mode);
+  }
+}
+
+class _NavListTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _NavListTile({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
+      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: onTap,
+    );
   }
 }
 

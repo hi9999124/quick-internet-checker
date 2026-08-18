@@ -1,6 +1,6 @@
 {
-    "name": "quick_internet_checker",
-    "short_name": "quick_internet_checker",
+    "name": "QIC — Quick Internet Checker",
+    "short_name": "QIC",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#060A14",

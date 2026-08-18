@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import '../models/speed_sample.dart';
 import '../services/history_store.dart';
 import '../services/network_service.dart';
+import '../services/snapshot_cache.dart';
 import '../theme/app_colors.dart';
+import '../widgets/cache_badge.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/metric_tile.dart';
 import '../widgets/speed_gauge.dart';
 import '../widgets/status_pill.dart';
+import 'full_report_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,6 +22,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final NetworkService _network = NetworkService();
   final HistoryStore _history = HistoryStore();
+  final SnapshotCache _cache = SnapshotCache();
 
   bool _isTesting = false;
   SpeedTestStage _stage = SpeedTestStage.idle;
@@ -35,6 +39,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _dnsSupported = true;
   int? _latencyMs;
   bool _snapshotLoading = true;
+  bool _usingCache = false;
+  DateTime? _cachedAt;
 
   @override
   void initState() {
@@ -42,11 +48,28 @@ class _HomeScreenState extends State<HomeScreen> {
     _refreshConnectivity();
     _loadLastResult();
     _loadSnapshot();
-    _network.connectivityStream.listen((_) => _refreshConnectivity());
+    // Some platforms (e.g. Linux without a running D-Bus session) can throw
+    // when the connectivity stream is set up — don't let that crash the app.
+    _network.connectivityStream.listen((_) => _refreshConnectivity(), onError: (_) {});
   }
 
   Future<void> _loadSnapshot() async {
     setState(() => _snapshotLoading = true);
+
+    // Show the last-known snapshot immediately so the app has something to
+    // display the instant it opens offline, before any network call resolves.
+    final cached = await _cache.load();
+    if (cached != null && mounted) {
+      setState(() {
+        _ipInfo = cached.ipInfo;
+        _ipFailed = false;
+        _dnsMs = cached.dnsMs;
+        _latencyMs = cached.latencyMs;
+        _usingCache = true;
+        _cachedAt = cached.timestamp;
+      });
+    }
+
     final results = await Future.wait([
       _network.fetchIpInfo().then<IpInfo?>((v) => v).catchError((_) => null),
       _network.dnsLookupMs('example.com'),
@@ -56,14 +79,30 @@ class _HomeScreenState extends State<HomeScreen> {
     final ipInfo = results[0] as IpInfo?;
     final dnsMs = results[1] as int?;
     final pings = (results[2] as List<PingResult>).where((p) => p.isReachable).map((p) => p.ms!);
-    setState(() {
-      _ipInfo = ipInfo;
-      _ipFailed = ipInfo == null;
-      _dnsMs = dnsMs;
-      _dnsSupported = dnsMs != null;
-      _latencyMs = pings.isEmpty ? null : pings.reduce((a, b) => a < b ? a : b);
-      _snapshotLoading = false;
-    });
+    final latencyMs = pings.isEmpty ? null : pings.reduce((a, b) => a < b ? a : b);
+
+    if (ipInfo != null) {
+      final now = DateTime.now();
+      await _cache.save(CachedSnapshot(ipInfo: ipInfo, dnsMs: dnsMs, latencyMs: latencyMs, timestamp: now));
+      if (!mounted) return;
+      setState(() {
+        _ipInfo = ipInfo;
+        _ipFailed = false;
+        _dnsMs = dnsMs;
+        _dnsSupported = dnsMs != null;
+        _latencyMs = latencyMs;
+        _usingCache = false;
+        _cachedAt = now;
+        _snapshotLoading = false;
+      });
+    } else {
+      // Live fetch failed — keep showing cached data (if any) rather than an error.
+      setState(() {
+        _ipFailed = cached == null;
+        _dnsSupported = dnsMs != null || cached != null;
+        _snapshotLoading = false;
+      });
+    }
   }
 
   Future<void> _loadLastResult() async {
@@ -196,9 +235,22 @@ class _HomeScreenState extends State<HomeScreen> {
             dnsMs: _dnsMs,
             dnsSupported: _dnsSupported,
             latencyMs: _latencyMs,
+            usingCache: _usingCache,
+            cachedAt: _cachedAt,
             onRefresh: _loadSnapshot,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const FullReportScreen()),
+              ),
+              icon: const Icon(Icons.fact_check_rounded, size: 16),
+              label: const Text('View full network report'),
+            ),
+          ),
+          const SizedBox(height: 6),
           GlassCard(
             borderRadius: BorderRadius.circular(28),
             padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
@@ -325,6 +377,8 @@ class _NetworkSnapshotCard extends StatelessWidget {
   final int? dnsMs;
   final bool dnsSupported;
   final int? latencyMs;
+  final bool usingCache;
+  final DateTime? cachedAt;
   final VoidCallback onRefresh;
 
   const _NetworkSnapshotCard({
@@ -336,6 +390,8 @@ class _NetworkSnapshotCard extends StatelessWidget {
     required this.dnsMs,
     required this.dnsSupported,
     required this.latencyMs,
+    required this.usingCache,
+    required this.cachedAt,
     required this.onRefresh,
   });
 
@@ -352,20 +408,28 @@ class _NetworkSnapshotCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Network snapshot', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: mutedColor)),
-              SizedBox(
-                width: 30,
-                height: 30,
-                child: loading
-                    ? const Padding(
-                        padding: EdgeInsets.all(6),
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : IconButton(
-                        padding: EdgeInsets.zero,
-                        iconSize: 18,
-                        onPressed: onRefresh,
-                        icon: const Icon(Icons.refresh_rounded),
-                      ),
+              Row(
+                children: [
+                  if (usingCache && cachedAt != null) ...[
+                    CacheBadge(since: cachedAt!),
+                    const SizedBox(width: 4),
+                  ],
+                  SizedBox(
+                    width: 30,
+                    height: 30,
+                    child: loading
+                        ? const Padding(
+                            padding: EdgeInsets.all(6),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : IconButton(
+                            padding: EdgeInsets.zero,
+                            iconSize: 18,
+                            onPressed: onRefresh,
+                            icon: const Icon(Icons.refresh_rounded),
+                          ),
+                  ),
+                ],
               ),
             ],
           ),

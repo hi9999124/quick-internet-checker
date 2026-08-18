@@ -6,6 +6,7 @@ import '../services/history_store.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/sparkline.dart';
+import 'stats_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -83,10 +84,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('History', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-              IconButton(
-                onPressed: _clearAll,
-                icon: const Icon(Icons.delete_outline_rounded),
-                tooltip: 'Clear history',
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const StatsScreen()),
+                    ),
+                    icon: const Icon(Icons.bar_chart_rounded),
+                    tooltip: 'Statistics',
+                  ),
+                  IconButton(
+                    onPressed: _clearAll,
+                    icon: const Icon(Icons.delete_outline_rounded),
+                    tooltip: 'Clear history',
+                  ),
+                ],
               ),
             ],
           ),

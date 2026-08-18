@@ -50,6 +50,14 @@ class IpInfo {
   final String? region;
   final String? country;
   final String? isp;
+  final String? asn;
+  final String? postal;
+  final String? timezone;
+  final double? latitude;
+  final double? longitude;
+  final String? currency;
+  final String? callingCode;
+  final String? continentCode;
 
   const IpInfo({
     required this.ip,
@@ -57,10 +65,50 @@ class IpInfo {
     this.region,
     this.country,
     this.isp,
+    this.asn,
+    this.postal,
+    this.timezone,
+    this.latitude,
+    this.longitude,
+    this.currency,
+    this.callingCode,
+    this.continentCode,
   });
 
   String get location {
     final parts = [city, region, country].where((p) => p != null && p.isNotEmpty);
     return parts.isEmpty ? 'Unknown location' : parts.join(', ');
   }
+
+  Map<String, dynamic> toJson() => {
+        'ip': ip,
+        'city': city,
+        'region': region,
+        'country': country,
+        'isp': isp,
+        'asn': asn,
+        'postal': postal,
+        'timezone': timezone,
+        'latitude': latitude,
+        'longitude': longitude,
+        'currency': currency,
+        'callingCode': callingCode,
+        'continentCode': continentCode,
+      };
+
+  factory IpInfo.fromJson(Map<String, dynamic> json) => IpInfo(
+        ip: json['ip'] as String,
+        city: json['city'] as String?,
+        region: json['region'] as String?,
+        country: json['country'] as String?,
+        isp: json['isp'] as String?,
+        asn: json['asn'] as String?,
+        postal: json['postal'] as String?,
+        timezone: json['timezone'] as String?,
+        latitude: (json['latitude'] as num?)?.toDouble(),
+        longitude: (json['longitude'] as num?)?.toDouble(),
+        currency: json['currency'] as String?,
+        callingCode: json['callingCode'] as String?,
+        continentCode: json['continentCode'] as String?,
+      );
 }

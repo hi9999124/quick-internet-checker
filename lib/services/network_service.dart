@@ -7,6 +7,9 @@ import 'package:http/http.dart' as http;
 
 import '../models/speed_sample.dart';
 import 'dns/dns_lookup.dart';
+import 'dns/local_network.dart';
+
+export 'dns/local_network.dart' show LocalNetworkInfo;
 
 enum SpeedTestStage { idle, ping, download, upload, done }
 
@@ -72,6 +75,14 @@ class NetworkService {
       region: data['region']?.toString(),
       country: data['country_name']?.toString(),
       isp: data['org']?.toString(),
+      asn: data['asn']?.toString(),
+      postal: data['postal']?.toString(),
+      timezone: data['timezone']?.toString(),
+      latitude: (data['latitude'] as num?)?.toDouble(),
+      longitude: (data['longitude'] as num?)?.toDouble(),
+      currency: data['currency']?.toString(),
+      callingCode: data['country_calling_code']?.toString(),
+      continentCode: data['continent_code']?.toString(),
     );
   }
 
@@ -96,6 +107,8 @@ class NetworkService {
   }
 
   Future<int?> dnsLookupMs(String host) => measureDnsLookupMs(host);
+
+  Future<LocalNetworkInfo> localNetworkInfo() => readLocalNetworkInfo();
 
   /// Runs ping/jitter, download, then upload legs and reports live progress.
   Future<SpeedSample> runSpeedTest({
