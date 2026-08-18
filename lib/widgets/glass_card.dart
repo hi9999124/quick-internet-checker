@@ -21,8 +21,6 @@ class GlassCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final tint = isDark ? Colors.white : Theme.of(context).colorScheme.primary;
-    final borderColor = isDark ? Colors.white : Theme.of(context).colorScheme.primary;
 
     final content = ClipRRect(
       borderRadius: borderRadius,
@@ -31,12 +29,17 @@ class GlassCard extends StatelessWidget {
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
-            color: tint.withValues(alpha: isDark ? 0.05 : 0.55),
+            // Frosted glass: a near-white (or near-black) tint, never a
+            // saturated brand color — that reads as a flat colored block
+            // instead of glass, especially in light mode.
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.62),
             borderRadius: borderRadius,
-            border: Border.all(color: borderColor.withValues(alpha: isDark ? 0.12 : 0.15)),
+            border: Border.all(
+              color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.85),
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
+                color: (isDark ? Colors.black : const Color(0xFF3346A6)).withValues(alpha: isDark ? 0.35 : 0.10),
                 blurRadius: 24,
                 offset: const Offset(0, 12),
               ),

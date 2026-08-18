@@ -83,12 +83,18 @@ class _GlassNavBar extends StatelessWidget {
           child: Container(
             height: 68,
             decoration: BoxDecoration(
-              color: (isDark ? Colors.white : Theme.of(context).colorScheme.primary)
-                  .withValues(alpha: isDark ? 0.06 : 0.5),
+              color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white.withValues(alpha: 0.68),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: (isDark ? Colors.white : Theme.of(context).colorScheme.primary).withValues(alpha: 0.14),
+                color: isDark ? Colors.white.withValues(alpha: 0.14) : Colors.white.withValues(alpha: 0.9),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: (isDark ? Colors.black : const Color(0xFF3346A6)).withValues(alpha: isDark ? 0.3 : 0.10),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: Row(
               children: List.generate(_items.length, (i) {

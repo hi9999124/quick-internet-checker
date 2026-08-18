@@ -29,12 +29,41 @@ class _HomeScreenState extends State<HomeScreen> {
   bool? _online;
   bool _checkingConnectivity = true;
 
+  IpInfo? _ipInfo;
+  bool _ipFailed = false;
+  int? _dnsMs;
+  bool _dnsSupported = true;
+  int? _latencyMs;
+  bool _snapshotLoading = true;
+
   @override
   void initState() {
     super.initState();
     _refreshConnectivity();
     _loadLastResult();
+    _loadSnapshot();
     _network.connectivityStream.listen((_) => _refreshConnectivity());
+  }
+
+  Future<void> _loadSnapshot() async {
+    setState(() => _snapshotLoading = true);
+    final results = await Future.wait([
+      _network.fetchIpInfo().then<IpInfo?>((v) => v).catchError((_) => null),
+      _network.dnsLookupMs('example.com'),
+      _network.pingAll(),
+    ]);
+    if (!mounted) return;
+    final ipInfo = results[0] as IpInfo?;
+    final dnsMs = results[1] as int?;
+    final pings = (results[2] as List<PingResult>).where((p) => p.isReachable).map((p) => p.ms!);
+    setState(() {
+      _ipInfo = ipInfo;
+      _ipFailed = ipInfo == null;
+      _dnsMs = dnsMs;
+      _dnsSupported = dnsMs != null;
+      _latencyMs = pings.isEmpty ? null : pings.reduce((a, b) => a < b ? a : b);
+      _snapshotLoading = false;
+    });
   }
 
   Future<void> _loadLastResult() async {
@@ -157,7 +186,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          _NetworkSnapshotCard(
+            loading: _snapshotLoading,
+            ip: _ipInfo?.ip,
+            ipFailed: _ipFailed,
+            isp: _ipInfo?.isp,
+            location: _ipInfo?.location,
+            dnsMs: _dnsMs,
+            dnsSupported: _dnsSupported,
+            latencyMs: _latencyMs,
+            onRefresh: _loadSnapshot,
+          ),
+          const SizedBox(height: 16),
           GlassCard(
             borderRadius: BorderRadius.circular(28),
             padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
@@ -270,5 +311,137 @@ class _HomeScreenState extends State<HomeScreen> {
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     return '${diff.inDays}d ago';
+  }
+}
+
+/// At-a-glance IP / DNS / latency readout, separate from the on-demand
+/// download+upload speed test above.
+class _NetworkSnapshotCard extends StatelessWidget {
+  final bool loading;
+  final String? ip;
+  final bool ipFailed;
+  final String? isp;
+  final String? location;
+  final int? dnsMs;
+  final bool dnsSupported;
+  final int? latencyMs;
+  final VoidCallback onRefresh;
+
+  const _NetworkSnapshotCard({
+    required this.loading,
+    required this.ip,
+    required this.ipFailed,
+    required this.isp,
+    required this.location,
+    required this.dnsMs,
+    required this.dnsSupported,
+    required this.latencyMs,
+    required this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final mutedColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55);
+    return GlassCard(
+      borderRadius: BorderRadius.circular(20),
+      padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Network snapshot', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: mutedColor)),
+              SizedBox(
+                width: 30,
+                height: 30,
+                child: loading
+                    ? const Padding(
+                        padding: EdgeInsets.all(6),
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : IconButton(
+                        padding: EdgeInsets.zero,
+                        iconSize: 18,
+                        onPressed: onRefresh,
+                        icon: const Icon(Icons.refresh_rounded),
+                      ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 20,
+            runSpacing: 10,
+            children: [
+              _SnapshotFact(
+                icon: Icons.public_rounded,
+                accent: AppColors.cyan,
+                label: 'IP address',
+                value: ipFailed ? 'Unavailable' : (ip ?? '—'),
+              ),
+              _SnapshotFact(
+                icon: Icons.dns_rounded,
+                accent: AppColors.violet,
+                label: 'DNS lookup',
+                value: !dnsSupported ? 'N/A on web' : (dnsMs == null ? '—' : '$dnsMs ms'),
+              ),
+              _SnapshotFact(
+                icon: Icons.podcasts_rounded,
+                accent: AppColors.magenta,
+                label: 'Latency',
+                value: latencyMs == null ? '—' : '$latencyMs ms',
+              ),
+              _SnapshotFact(
+                icon: Icons.location_on_rounded,
+                accent: AppColors.online,
+                label: 'Location',
+                value: location ?? '—',
+              ),
+            ],
+          ),
+          if (isp != null) ...[
+            const SizedBox(height: 10),
+            Text('ISP: $isp', style: TextStyle(fontSize: 12, color: mutedColor)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SnapshotFact extends StatelessWidget {
+  final IconData icon;
+  final Color accent;
+  final String label;
+  final String value;
+
+  const _SnapshotFact({required this.icon, required this.accent, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 150,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: accent),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))),
+                Text(
+                  value,
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

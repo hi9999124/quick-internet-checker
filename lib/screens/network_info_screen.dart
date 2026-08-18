@@ -97,7 +97,9 @@ class _NetworkInfoScreenState extends State<NetworkInfoScreen> {
                   if (_ipInfo != null) ...[
                     _InfoRow(label: 'IP address', value: _ipInfo!.ip),
                     _InfoRow(label: 'ISP', value: _ipInfo!.isp ?? 'Unknown'),
-                    _InfoRow(label: 'Location', value: _ipInfo!.location),
+                    _InfoRow(label: 'City', value: _ipInfo!.city ?? 'Unknown'),
+                    _InfoRow(label: 'Region', value: _ipInfo!.region ?? 'Unknown'),
+                    _InfoRow(label: 'Country', value: _ipInfo!.country ?? 'Unknown'),
                   ] else if (_ipError != null)
                     Text(_ipError!, style: TextStyle(color: AppColors.offline))
                   else
